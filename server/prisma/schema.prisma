@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Recipe {
+  id           Int      @id @default(autoincrement())
+  name         String
+  description  String?
+  instructions String
+  cookingTime  Int
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ingredients  RecipeIngredient[]
+  favorites    Favorite[]
+}
+
+model Ingredient {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique
+
+  recipes RecipeIngredient[]
+}
+
+model RecipeIngredient {
+  id           Int        @id @default(autoincrement())
+  recipeId     Int
+  ingredientId Int
+  quantity     String?
+
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, ingredientId])
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  name      String?
+  email     String     @unique
+  createdAt DateTime   @default(now())
+
+  favorites Favorite[]
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  recipeId  Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+}
+
+model ShoppingListItem {
+  id        Int      @id @default(autoincrement())
+  name      String
+  quantity  String?
+  isChecked Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
