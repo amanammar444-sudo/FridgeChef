@@ -29,6 +29,71 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET recipes by ingredients
+router.get("/search", async (req, res) => {
+  try {
+    const { ingredients } = req.query;
+
+    if (!ingredients || typeof ingredients !== "string") {
+      return res.status(400).json({
+        message: "Please provide ingredients to search.",
+        example: "/api/recipes/search?ingredients=egg,tomato",
+      });
+    }
+
+    const searchIngredients = ingredients
+      .split(",")
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean);
+
+    if (searchIngredients.length === 0) {
+      return res.status(400).json({
+        message: "Please enter at least one ingredient.",
+      });
+    }
+
+    const recipes = await prisma.recipe.findMany({
+      where: {
+        ingredients: {
+          some: {
+            ingredient: {
+              OR: searchIngredients.map((name) => ({
+                name: {
+                  contains: name,
+                  mode: "insensitive",
+                },
+              })),
+            },
+          },
+        },
+      },
+      include: {
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      searchIngredients,
+      count: recipes.length,
+      recipes,
+    });
+  } catch (error) {
+    console.error("Error searching recipes:", error);
+
+    return res.status(500).json({
+      message: "Failed to search recipes",
+      error: error.message,
+    });
+  }
+});
+
 // GET one recipe by ID
 router.get("/:id", async (req, res) => {
   try {
